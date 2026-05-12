@@ -1,0 +1,61 @@
+# EDEKA Supergraph — Apollo Federation v2
+#
+# Subgraphs:
+#   PimSubgraph   — Produktstammdaten (Name, Beschreibung, Kategorie, Marke)
+#   PriceSubgraph — Preisinformationen (Betrag, Währung, Gültigkeit)
+#
+# Entity-Resolution via @key(fields: "ean") auf dem Article-Typ.
+
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable", "@external", "@provides", "@requires", "@tag"])
+{
+  query: Query
+}
+
+type Query {
+  article(ean: String!): Article
+  articles(filter: ArticleFilter): [Article!]!
+  search(query: String!, first: Int = 20): ArticleConnection!
+}
+
+type Article
+  @key(fields: "ean")
+{
+  ean: String!
+  name: String!
+  description: String
+  category: Category
+  brand: String
+  imageUrl: String
+  price: Price!
+}
+
+type Category {
+  id: ID!
+  name: String!
+}
+
+type Price {
+  amount: Float!
+  currency: String!
+  validFrom: String
+  validTo: String
+}
+
+input ArticleFilter {
+  eans: [String!]
+  category: String
+  brand: String
+  search: String
+}
+
+type ArticleConnection {
+  edges: [ArticleEdge!]!
+  totalCount: Int!
+}
+
+type ArticleEdge {
+  node: Article!
+  cursor: String!
+}

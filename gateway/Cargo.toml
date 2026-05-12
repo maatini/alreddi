@@ -1,0 +1,25 @@
+[package]
+name = "edeka-gateway"
+version = "0.1.0"
+edition = "2021"
+description = "EDEKA Retail Integration Layer — Federation Gateway & CQRS Fast-Read"
+
+[dependencies]
+async-graphql = "7"
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dashmap = "6"
+sha2 = "0.10"
+hex = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter", "time"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+uuid = { version = "1", features = ["v4"] }
+thiserror = "2"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tower = { version = "0.4", features = ["util"] }

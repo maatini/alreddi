@@ -1,0 +1,22 @@
+# Price Subgraph — Preisinformationen
+# Verantwortlich für Preis- und Währungsdaten.
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable", "@external"])
+
+type Query {
+  price(ean: String!): Price
+  prices(eans: [String!]!): [Price!]!
+}
+
+type Article @key(fields: "ean") {
+  ean: String!
+  price: Price!
+}
+
+type Price {
+  amount: Float!
+  currency: String!
+  validFrom: String
+  validTo: String
+}

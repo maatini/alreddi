@@ -1,0 +1,26 @@
+# --- Rust build artifacts ---
+target/
+*.rs.bk
+*.pdb
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Environment ---
+.env
+.env.local
+.env.*.local
+
+# --- Claude Code (local overrides) ---
+.claude/settings.local.json
+.claude/worktrees/
+
+# --- Devbox ---
+.devbox/

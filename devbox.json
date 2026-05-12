@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.0/.schema/devbox.schema.json",
+  "packages": [
+    "rustup@latest",
+    "pkg-config@latest",
+    "openssl@latest",
+    "graphqurl@latest"
+  ],
+  "env": {
+    "RUST_BACKTRACE": "1"
+  },
+  "shell": {
+    "init_hook": [
+      "rustup default stable 2>/dev/null || rustup install stable",
+      "echo '🦀 Rust:  ' $(rustc --version)",
+      "echo '📦 Cargo: ' $(cargo --version)",
+      "echo '🔍 gq:    ' $(gq --version 2>&1 | head -1)"
+    ]
+  }
+}

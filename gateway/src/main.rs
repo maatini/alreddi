@@ -2,9 +2,11 @@ mod apq;
 mod coalescing;
 mod config;
 mod cost_analysis;
+mod id_translation;
 mod logging;
 mod pos;
 mod schema;
+mod subgraph;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -36,6 +38,14 @@ struct AppState {
     pos_cache: pos::PosCache,
     #[allow(dead_code)]
     pos_metrics: Arc<pos::metrics::LatencyTracker>,
+    #[allow(dead_code)]
+    id_translator: id_translation::IdTranslator,
+    #[allow(dead_code)]
+    pim_client: subgraph::pim::PimClient,
+    #[allow(dead_code)]
+    price_client: subgraph::price::PriceClient,
+    #[allow(dead_code)]
+    lunar_client: subgraph::lunar::LunarClient,
 }
 
 // ---------------------------------------------------------------------------
@@ -127,20 +137,41 @@ async fn main() {
     let pos_metrics = Arc::new(pos::metrics::LatencyTracker::new());
     let _ingestion_handle = pos::start_ingestion_worker(pos_cache.clone(), 5000);
 
+    // --- ID Translation & Subgraph clients (Phase 3) ---
+    let id_translator = id_translation::IdTranslator::with_seed_data();
+    let subgraph_cfg = subgraph::SubgraphConfig::default();
+    let pim_client = subgraph::pim::PimClient::new(subgraph_cfg.clone());
+    let price_client = subgraph::price::PriceClient::new(subgraph_cfg.clone());
+    let lunar_client = subgraph::lunar::LunarClient::new(subgraph_cfg);
+
+    let id_mapping_count = id_translator.len();
+
+    // Build schema with subgraph clients injected into async-graphql context
+    let schema = schema::build_schema(
+        id_translator.clone(),
+        pim_client.clone(),
+        price_client.clone(),
+    );
+
     let state = Arc::new(AppState {
         coalescer: coalescing::Coalescer::new(
             config.coalescing_enabled,
             Duration::from_secs(config.request_timeout_secs),
         ),
         apq_cache: apq::ApqCache::new(config.apq_cache_size),
-        schema: schema::build_schema(),
+        schema,
         pos_cache: pos_cache.clone(),
         pos_metrics: pos_metrics.clone(),
+        id_translator,
+        pim_client,
+        price_client,
+        lunar_client,
         config,
     });
 
     tracing::info!(
         cache_entries = pos_cache.len(),
+        id_mappings = id_mapping_count,
         "POS cache initialised, REDDI ingestion started"
     );
 

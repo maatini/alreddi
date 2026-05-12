@@ -60,6 +60,7 @@ pub async fn health_impl() -> Json<serde_json::Value> {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct PosState {
     pub cache: PosCache,
     pub metrics: Arc<LatencyTracker>,

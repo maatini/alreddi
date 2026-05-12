@@ -8,6 +8,11 @@ unterschiedlichen Konsumenten (Picnic, Mobile Apps, Chatbots, POS/Kasse)
 > **Alreddi** = _already_ + _REDDI_. Die Daten sind bereits im Cache,
 > bevor die Kasse fragt — `< 15 ms` p99 für den POS-Lese-Pfad.
 
+[![Rust](https://img.shields.io/badge/rust-1.95%2B-orange?style=flat&logo=rust)](https://www.rust-lang.org)
+[![Devbox](https://img.shields.io/badge/devbox-0.17-blue?style=flat&logo=nixos)](https://www.jetify.com/devbox)
+[![Status](https://img.shields.io/badge/status-Phase%201%20complete-green?style=flat)](#phasen--roadmap)
+[![License](https://img.shields.io/badge/license-proprietary-red?style=flat)](#lizenz)
+
 ---
 
 ## Architektur

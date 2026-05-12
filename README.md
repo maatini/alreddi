@@ -19,37 +19,44 @@ unterschiedlichen Konsumenten (Picnic, Mobile Apps, Chatbots, POS/Kasse)
 
 ## Architektur
 
-```
-                          ┌──────────────────────────────┐
-                          │         API Consumer          │
-                          │  Picnic · Apps · POS · Chat   │
-                          └──────────────┬───────────────┘
-                                         │
-                          ┌──────────────▼───────────────┐
-                          │      Alreddi Gateway          │
-                          │    (Rust · Axum · Tower)      │
-                          │                              │
-                          │  ┌────────────────────────┐  │
-                          │  │  Governance Layer       │  │
-                          │  │  APQ → Cost → Coalesce  │  │
-                          │  └────────────────────────┘  │
-                          │                              │
-                          │  ┌──────────┐ ┌────────────┐ │
-                          │  │  Pfad A  │ │  Pfad B    │ │
-                          │  │ Federation│ │  CQRS      │ │
-                          │  │ (GraphQL) │ │ (REST)     │ │
-                          │  └────┬─────┘ └─────┬──────┘ │
-                          └───────┼─────────────┼────────┘
-                                  │             │
-                    ┌─────────────┼─────┐  ┌────▼──────────┐
-                    │             │     │  │  REDDI Event  │
-                    │  PIM   Price  LUNAR│  │  Bus (Solace) │
-                    │             │     │  └───────┬───────┘
-                    └─────────────┼─────┘          │
-                                  │         ┌──────▼───────┐
-                          GraphQL │         │  POS Cache    │
-                        Subgraphs │         │  (In-Memory)  │
-                                  │         └──────────────┘
+```mermaid
+flowchart TB
+    subgraph Clients["API Consumer"]
+        Picnic["Picnic"]
+        Apps["Mobile Apps"]
+        Chat["Chatbots"]
+        POS["POS / Kasse"]
+    end
+
+    subgraph Gateway["Alreddi Gateway (Rust · Axum · Tower)"]
+        direction TB
+        Gov["Governance Layer<br/>APQ → Cost Analysis → Coalesce"]
+        ID["ID-Translation<br/>EAN → MATNR"]
+        PathA["Pfad A: Federation<br/>(GraphQL)"]
+        PathB["Pfad B: CQRS<br/>(REST · &lt;15 ms)"]
+        Gov --> ID
+        ID --> PathA
+        ID --> PathB
+    end
+
+    subgraph Subgraphs["GraphQL Subgraphs"]
+        PIM["PIM<br/>Stammdaten"]
+        Price["Price<br/>Preise"]
+        LUNAR["LUNAR<br/>SAP ERP"]
+    end
+
+    subgraph EventBus["REDDI Event Bus (Solace)"]
+        REDDI["article.updated"]
+    end
+
+    subgraph Cache["POS Fast-Read"]
+        POSCache["In-Memory Cache<br/>(DashMap)"]
+    end
+
+    Clients --> Gateway
+    PathA --> Subgraphs
+    PathB --> POSCache
+    REDDI -- "async ingest" --> POSCache
 ```
 
 ### Pfad A — GraphQL Federation (zustandslos)

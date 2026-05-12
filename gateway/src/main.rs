@@ -3,6 +3,7 @@ mod coalescing;
 mod config;
 mod cost_analysis;
 mod logging;
+mod pos;
 mod schema;
 
 use std::sync::Arc;
@@ -31,6 +32,10 @@ struct AppState {
     coalescer: coalescing::Coalescer,
     apq_cache: apq::ApqCache,
     schema: schema::FederationSchema,
+    #[allow(dead_code)]
+    pos_cache: pos::PosCache,
+    #[allow(dead_code)]
+    pos_metrics: Arc<pos::metrics::LatencyTracker>,
 }
 
 // ---------------------------------------------------------------------------
@@ -117,6 +122,11 @@ async fn main() {
 
     let addr = config.bind_addr;
 
+    // --- POS Fast-Read (Pfad B, CQRS) ---
+    let pos_cache = pos::PosCache::new();
+    let pos_metrics = Arc::new(pos::metrics::LatencyTracker::new());
+    let _ingestion_handle = pos::start_ingestion_worker(pos_cache.clone(), 5000);
+
     let state = Arc::new(AppState {
         coalescer: coalescing::Coalescer::new(
             config.coalescing_enabled,
@@ -124,13 +134,52 @@ async fn main() {
         ),
         apq_cache: apq::ApqCache::new(config.apq_cache_size),
         schema: schema::build_schema(),
+        pos_cache: pos_cache.clone(),
+        pos_metrics: pos_metrics.clone(),
         config,
     });
+
+    tracing::info!(
+        cache_entries = pos_cache.len(),
+        "POS cache initialised, REDDI ingestion started"
+    );
+
+    // POS handler wrappers — extract state and delegate to pure impl functions
+    let pos_cache_clone = pos_cache.clone();
+    let pos_metrics_clone = pos_metrics.clone();
 
     let app = Router::new()
         .route("/graphql", axum::routing::post(graphql_handler))
         .route("/health", get(health_handler))
         .route("/healthz", get(health_handler))
+        .route(
+            "/api/v1/pos/article/:ean",
+            get({
+                let cache = pos_cache_clone.clone();
+                let metrics = pos_metrics_clone.clone();
+                move |axum::extract::Path(ean): axum::extract::Path<String>| {
+                    let cache = cache.clone();
+                    let metrics = metrics.clone();
+                    async move {
+                        pos::handler::get_article_impl(&cache, &metrics, &ean).await
+                    }
+                }
+            }),
+        )
+        .route(
+            "/api/v1/pos/metrics",
+            get({
+                let metrics = pos_metrics_clone.clone();
+                move || {
+                    let metrics = metrics.clone();
+                    async move { pos::handler::get_metrics_impl(&metrics).await }
+                }
+            }),
+        )
+        .route(
+            "/api/v1/pos/health",
+            get(|| async { pos::handler::health_impl().await }),
+        )
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state);

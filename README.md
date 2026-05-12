@@ -13,6 +13,8 @@ unterschiedlichen Konsumenten (Picnic, Mobile Apps, Chatbots, POS/Kasse)
 [![Status](https://img.shields.io/badge/status-Phase%201%20complete-green?style=flat)](#phasen--roadmap)
 [![License](https://img.shields.io/badge/license-proprietary-red?style=flat)](#lizenz)
 
+![Alreddi Architecture](alreddi.png)
+
 ---
 
 ## Architektur
